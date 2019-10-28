@@ -1,0 +1,36 @@
+
+{% extends "index.html" %}
+
+{% block content %}
+
+<div class="container">
+
+<div class="table-responsive col-md-8">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">President</th>
+                        <th scope="col">Population</th>
+                        <th scope="col">year_creation</th>
+                    </tr>
+                </thead>
+                <tr>
+                {% for country in countries %}
+
+                    <td> {{ country.name }} </td>
+                    <td> {{ country.president }} </td>
+                    <td> {{ country.population }} </td>
+                    <td> {{ country.year_creation }} </td>
+                    <td><a href="/update/{{country.id}}" class="btn btn-success">Edit</a> </td>
+                </tr>
+                {% endfor %}
+
+                </tbody>
+            </table>
+         </div>
+     </div>
+</div>
+
+
+{% endblock %}

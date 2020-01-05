@@ -4,16 +4,19 @@ import random
 from flask import Flask, render_template, request, redirect
 from flask_migrate import Migrate, MigrateCommand
 from flask_script import Manager
-
-from bll.dataservice import get_data, insert_data, get_data_by_id, delete_data, save, update_data, req1, req2, req3
+from datetime import datetime
+from ai.classes import *
+from bll.dataservice import get_data, insert_data, get_data_by_id, delete_data, save, update_data, req1, req2, req3, req4
 from dal import db
 from dal.db import db_string
-from dal.dto import UserSkillDTO
-from dal.model import Person, Skill, UserSkill, Country
+from dal.dto import UserSkillDTO, ProfessionSkillDTO
+from dal.model import Person, Skill, UserSkill, Profession, ProfessionSkill, Vacancy
 from forms.skill_form import SkillForm
 from forms.user_form import UserForm
-from forms.user_has_skill import UserSkillForm
-from forms.county_form import CountryForm
+from forms.user_has_skill_form import UserSkillForm
+from forms.profession_form import ProfessionForm
+from forms.profession_has_skill_form import ProfessionSkillForm
+from forms.vacancy_form import VacancyForm
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = db_string
@@ -150,30 +153,6 @@ def userskill_edit(id):
         return render_template('user_has_skill.html', userskills = userskills, form = form)
 
 
-@app.route('/get')
-def sk1():
-
-    country1 = Country(int(random.getrandbits(31)), name='Ukraine', president = 'Zelenskiy',
-                  population = 3500000, year_creation=1991)
-    country2 = Country(int(random.getrandbits(31)), name='Russia', president='Putin',
-                       population=13500000, year_creation=1991)
-    country3 = Country(int(random.getrandbits(31)), name='Belodussia', president='Lukashenko',
-                       population=3000000, year_creation=1991)
-
-    insert_data(country1)
-    insert_data(country2)
-    insert_data(country3)
-    save()
-
-    return 'added'
-
-@app.route('/show', methods=['GET'])
-def show():
-    result = get_data(Country)
-    return render_template('country.html', countries=result)
-
-
-
 @app.route('/dashboard')
 def dashboard():
     res1 = req1(Person, UserSkill, Skill)
@@ -185,29 +164,149 @@ def dashboard():
 
     return render_template('dashboard.html', val1 = values1, lab1 = labels1, val2 = values2, lab2 = labels2)
 
-@app.route('/update/<id>',  methods=['GET', 'POST'])
-def update(id):
-    print(id)
 
-    country = get_data_by_id(Country, id)
-    form = CountryForm()
+@app.route('/profession', methods=['GET', 'POST'])
+def profession():
+    result = get_data(Profession)
+    form = ProfessionForm(request.form)
+    if request.method == 'POST':
+        print(form.id.data)
+
+        if(form.id.data == ''):
+            print(form.name.data)
+            profession = Profession(int(random.getrandbits(31)), name=form.name.data, minimal_work_expirience = int(form.minimal_work_expirience.data), minimal_education = form.minimal_education.data, category = form.category.data)
+            insert_data(profession)
+        else:
+            profession = Profession(id=int(form.id.data),  name = form.name.data, minimal_work_expirience = form.minimal_work_expirience.data, minimal_education = form.minimal_education.data, category = form.category.data)
+            update_data(profession, Profession)
+        save()
+        return redirect('/profession')
+
+    return render_template('profession.html', professions = result, form = form)
+
+
+@app.route('/profession/delete/<id>')
+def profession_delete(id):
+    delete_data(Profession, id)
+    save()
+    return redirect('/profession')
+
+
+@app.route('/profession/edit/<id>', methods=['GET'])
+def profession_edit(id):
     if request.method == 'GET':
-        form.id.data = id
-        form.name.data = country.name
-        form.president.data = country.president
-        form.year_creation.data = country.year_creation
-        form.population.data = country.population
+        profession = get_data_by_id(Profession, id)
+        result = get_data(Profession)
+        form = ProfessionForm()
+        form.id.data = profession.id
+        form.name.data = profession.name
+        form.minimal_work_expirience.data = profession.minimal_work_expirience
+        form.minimal_education.data = profession.minimal_education
+        form.category.data = profession.category
+        return render_template('profession.html', professions = result, form = form)
 
-    return render_template('update.html', form = form)
+
+@app.route('/vacancy', methods=['GET', 'POST'])
+def vacancy():
+    result = get_data(Vacancy)
+    form = VacancyForm(request.form)
+    professions = get_data(Profession)
+    form.profession_id.choices = [(profession.id, profession.name) for profession in professions]
+
+    if request.method == 'POST':
+        print(form.id.data)
+
+        if(form.id.data == ''):
+            vacancy = Vacancy(int(random.getrandbits(31)), name = form.name.data, duties = form.duties.data, salary = form.salary.data, created_at=datetime.now(), description=form.description.data, profession_id = form.profession_id.data)
+            insert_data(vacancy)
+        else:
+            vacancy = Vacancy(id = int(form.id.data), name = form.name.data, duties = form.duties.data, salary = form.salary.data, created_at=datetime.now(), description=form.description.data, profession_id = form.profession_id.data)
+            update_data(vacancy, Vacancy)
+        save()
+        return redirect('/vacancy')
+
+    return render_template('vacancy.html', vacancies = result, form = form)
+
+@app.route('/vacancy/delete/<id>')
+def vacancy_delete(id):
+    delete_data(Vacancy, id)
+    save()
+    return redirect('/vacancy')
+
+@app.route('/vacancy/edit/<id>', methods=['GET'])
+def vacancy_edit(id):
+    if request.method == 'GET':
+        vacancy = get_data_by_id(Vacancy, id)
+        professions = get_data(Profession)
+        result = get_data(Vacancy)
+        form = VacancyForm()
+        form.id.data = vacancy.id
+        form.name.data = vacancy.name
+        form.description.data = vacancy.description
+        form.duties.data = vacancy.duties
+        form.salary.data = vacancy.salary
+        form.profession_id.data = vacancy.profession_id
+        form.profession_id.choices = [(profession.id, profession.name) for profession in professions]
+
+        return render_template('vacancy.html', vacancies = result, form = form)
 
 
-@app.route('/bar',  methods=['GET'])
-def bar():
-    res2 = get_data(Country)
-    values2 = [i.population for i in res2]
-    labels2 = [i.name for i in res2]
+@app.route('/profession_skill', methods=['GET', 'POST'])
+def profession_skill():
+    professions = get_data(Profession)
+    skills = get_data(Skill)
+    req = req4(Profession, ProfessionSkill, Skill)
+    professionskills = [ProfessionSkillDTO(i[0], i[1], i[2]) for i in req]
+    form = ProfessionSkillForm(request.form)
+    form.skill_id.choices = [(skill.id, skill.name) for skill in skills]
+    form.profession_id.choices = [(profession.id, profession.name) for profession in professions]
+    if request.method == 'POST':
+        if form.id.data == '':
+            professionskill = ProfessionSkill(int(random.getrandbits(31)), form.profession_id.data, form.skill_id.data)
+            insert_data(professionskill)
+        else:
+            professionskill = ProfessionSkill(int(form.id.data), form.profession_id.data, form.skill_id.data)
+            update_data(professionskill, ProfessionSkill)
+        save()
+        return redirect('/profession_skill')
 
-    return render_template('bar.html', val2 = values2, lab2 = labels2)
+    return render_template('profession_has_skill.html', professionskills = professionskills, form = form)
+
+@app.route('/profession_skill/delete/<id>')
+def profession_skill_delete(id):
+    delete_data(ProfessionSkill, id)
+    save()
+    return redirect('/profession_skill')
+
+@app.route('/profession_skill/edit/<id>', methods=['GET'])
+def profession_skill_edit(id):
+    if request.method == 'GET':
+        professionskill = get_data_by_id(ProfessionSkill, id)
+
+        professions = get_data(Profession)
+        skills = get_data(Skill)
+        req = req4(Profession, ProfessionSkill, Skill)
+        professionskills = [ProfessionSkillDTO(i[0], i[1], i[2]) for i in req]
+
+        form = ProfessionSkillForm(request.form)
+        form.skill_id.choices = [(skill.id, skill.name) for skill in skills]
+        form.profession_id.choices = [(profession.id, profession.name) for profession in professions]
+        form.id.data = professionskill.id
+        form.skill_id.data = professionskill.skill_id
+        form.profession_id.data = professionskill.profession_id
+        return render_template('profession_has_skill.html', professionskills = professionskills, form = form)
+
+
+@app.route('/classification', methods=['GET'])
+def classification():
+    vacancies = get_data(Vacancy)
+    vacanciesWithCategory = classificate_vacancy_by_salary(vacancies)
+    return render_template('statistics.html', vacancies = vacanciesWithCategory)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+#if __name__ == '__main__':
+#    manager.run()

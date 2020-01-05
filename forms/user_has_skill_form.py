@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import HiddenField, validators, SubmitField, SelectField
+from wtforms import HiddenField, SubmitField, SelectField
 
 
 class UserSkillForm(FlaskForm):

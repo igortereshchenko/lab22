@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Date, ForeignKey
+from sqlalchemy import Column, String, Integer, Date, ForeignKey, Float
 
 from dal.db import Base
 
@@ -33,7 +33,8 @@ class Profession(Base):
     minimal_education = Column(String)
     category = Column(String)
 
-    def __init__(self, name, minimal_work_expirience, minimal_education, category):
+    def __init__(self, id, name, minimal_work_expirience, minimal_education, category):
+        self.id = id
         self.name = name
         self.minimal_work_expirience = minimal_work_expirience
         self.minimal_education = minimal_education
@@ -69,42 +70,50 @@ class UserSkill(Base):
         self.user_id = user_id
         self.skill_id = skill_id
 
-class Copmany(Base):
+
+class ProfessionSkill(Base):
+
+    __tablename__ = 'professions_skills'
+
+    id = Column(Integer, primary_key=True)
+    profession_id = Column(Integer, ForeignKey('profession.id', ondelete="CASCADE", onupdate="CASCADE"))
+    skill_id = Column(Integer, ForeignKey('skill.id', ondelete="CASCADE", onupdate="CASCADE"))
+
+    def __init__(self, id, profession_id, skill_id):
+        self.id = id
+        self.profession_id = profession_id
+        self.skill_id = skill_id
+
+
+class Company(Base):
 
     __tablename__ = 'company'
 
     id = Column(Integer, primary_key=True)
     company_name = Column(String)
-    company_logo = Column(String)
+
+    def __init__(self, id, company_name):
+        self.id = id
+        self.company_name = company_name
 
 
-class Country(Base):
-    __tablename__ = 'country'
+class Vacancy(Base):
+
+    __tablename__ = 'vacancy'
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
-    president = Column(String)
-    population = Column(String)
-    year_creation = Column(Integer)
+    duties = Column(String)
+    salary = Column(Float)
+    description = Column(String)
+    created_at = Column(Date)
+    profession_id = Column(Integer, ForeignKey('profession.id', ondelete="CASCADE", onupdate="CASCADE"))
 
-    def __init__(self, id, name, president, population, year_creation):
+    def __init__(self, id, name, duties, salary, description, created_at, profession_id):
         self.id = id
         self.name = name
-        self.president = president
-        self.population = population
-        self.year_creation = year_creation
-
-
-class CompanyHasCountry(Base):
-
-    __tablename__ = 'company_contry'
-
-    id = Column(Integer, primary_key=True)
-    country_id = Column(Integer, ForeignKey('country.id', ondelete="CASCADE", onupdate="CASCADE"))
-    company_id = Column(Integer, ForeignKey('company.id', ondelete="CASCADE", onupdate="CASCADE"))
-
-    def __init__(self, id, country_id, company_id):
-        self.id = id
-        self.country_id = country_id
-        self.company_id = company_id
-
+        self.duties = duties
+        self.salary = salary
+        self.description = description
+        self.created_at = created_at
+        self.profession_id = profession_id
